@@ -1,5 +1,6 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createClient } from './lib/supabase';
 
 const products = [
   { id:1, name:'Roborock S8 Pro Ultra', brand:'ROBOROCK', price:1999, oldPrice:2999, discount:30, emoji:'🤖', badge:'HOT', category:'שואבי רובוט' },
@@ -21,6 +22,12 @@ export default function Home() {
   const [cart, setCart] = useState<number[]>([]);
   const [activeFilter, setActiveFilter] = useState('הכל');
   const [cartOpen, setCartOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const supabase = createClient();
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+  }, []);
 
   const addToCart = (id: number) => setCart(prev => [...prev, id]);
   const cartCount = cart.length;
@@ -30,7 +37,6 @@ export default function Home() {
   return (
     <div style={{fontFamily:'system-ui,sans-serif',direction:'rtl',backgroundColor:'#f5f5f0',minHeight:'100vh'}}>
 
-      {/* Header */}
       <header style={{backgroundColor:'white',padding:'0 40px',height:'64px',display:'flex',alignItems:'center',justifyContent:'space-between',borderBottom:'1px solid #eee',position:'sticky',top:0,zIndex:100,boxShadow:'0 1px 8px rgba(0,0,0,0.06)'}}>
         <span style={{fontSize:'22px',fontWeight:'900',color:'#0ea5e9',letterSpacing:'-1px'}}>FILOS</span>
         <nav style={{display:'flex',gap:'32px'}}>
@@ -43,11 +49,17 @@ export default function Home() {
             🛒
             {cartCount>0&&<span style={{position:'absolute',top:'-8px',right:'-8px',backgroundColor:'#f97316',color:'white',borderRadius:'50%',width:'18px',height:'18px',fontSize:'11px',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:'700'}}>{cartCount}</span>}
           </div>
-          <button style={{backgroundColor:'#0ea5e9',color:'white',border:'none',padding:'8px 20px',borderRadius:'8px',cursor:'pointer',fontWeight:'700',fontSize:'14px'}}>כניסה</button>
+          {user ? (
+            <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
+              <span style={{fontSize:'13px',color:'#444'}}>{user.email}</span>
+              <button onClick={()=>supabase.auth.signOut().then(()=>setUser(null))} style={{backgroundColor:'#f1f5f9',color:'#444',border:'none',padding:'8px 16px',borderRadius:'8px',cursor:'pointer',fontWeight:'600',fontSize:'14px'}}>יציאה</button>
+            </div>
+          ) : (
+            <button onClick={()=>window.location.href='/login'} style={{backgroundColor:'#0ea5e9',color:'white',border:'none',padding:'8px 20px',borderRadius:'8px',cursor:'pointer',fontWeight:'700',fontSize:'14px'}}>כניסה</button>
+          )}
         </div>
       </header>
 
-      {/* Cart Dropdown */}
       {cartOpen&&(
         <div style={{position:'fixed',top:'64px',left:'40px',backgroundColor:'white',borderRadius:'16px',padding:'20px',boxShadow:'0 8px 32px rgba(0,0,0,0.15)',zIndex:200,minWidth:'280px'}}>
           <h3 style={{margin:'0 0 12px',fontSize:'16px',fontWeight:'700'}}>🛒 העגלה שלי ({cartCount})</h3>
@@ -61,17 +73,10 @@ export default function Home() {
         </div>
       )}
 
-      {/* Hero */}
       <section style={{backgroundColor:'white',padding:'80px 40px',textAlign:'center'}}>
-        <div style={{display:'inline-block',backgroundColor:'#e0f2fe',color:'#0369a1',padding:'6px 16px',borderRadius:'20px',fontSize:'13px',fontWeight:'700',marginBottom:'24px'}}>
-          • החנות החכמה של ישראל
-        </div>
-        <h1 style={{fontSize:'60px',fontWeight:'900',lineHeight:'1.1',marginBottom:'16px',color:'#0f172a'}}>
-          קנה <span style={{color:'#0ea5e9'}}>חכם.</span><br/>חסוך יותר.
-        </h1>
-        <p style={{fontSize:'18px',color:'#666',maxWidth:'500px',margin:'0 auto 32px'}}>
-          שואבי רובוט, בית חכם, גאדג'טים וסוללות — במחיר שלא תמצא בשום מקום אחר.
-        </p>
+        <div style={{display:'inline-block',backgroundColor:'#e0f2fe',color:'#0369a1',padding:'6px 16px',borderRadius:'20px',fontSize:'13px',fontWeight:'700',marginBottom:'24px'}}>• החנות החכמה של ישראל</div>
+        <h1 style={{fontSize:'60px',fontWeight:'900',lineHeight:'1.1',marginBottom:'16px',color:'#0f172a'}}>קנה <span style={{color:'#0ea5e9'}}>חכם.</span><br/>חסוך יותר.</h1>
+        <p style={{fontSize:'18px',color:'#666',maxWidth:'500px',margin:'0 auto 32px'}}>שואבי רובוט, בית חכם, גאדג'טים וסוללות — במחיר שלא תמצא בשום מקום אחר.</p>
         <div style={{display:'flex',gap:'16px',justifyContent:'center',flexWrap:'wrap'}}>
           <button style={{backgroundColor:'#0f172a',color:'white',border:'none',padding:'14px 32px',borderRadius:'12px',fontSize:'16px',fontWeight:'700',cursor:'pointer'}}>גלה את המוצרים ↓</button>
           <button style={{backgroundColor:'white',color:'#0f172a',border:'2px solid #0f172a',padding:'14px 32px',borderRadius:'12px',fontSize:'16px',fontWeight:'700',cursor:'pointer'}}>דבר עם FILOS AI</button>
@@ -86,20 +91,18 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Trust Bar */}
       <div style={{backgroundColor:'#0f172a',padding:'12px 40px',display:'flex',justifyContent:'center',gap:'48px'}}>
         {['🚚 משלוח חינם מ-₪299','🛡️ אחריות ישראלית','💰 מחיר הוגן תמיד','📞 תמיכה 24/7'].map(item=>(
           <span key={item} style={{color:'#cbd5e1',fontSize:'13px',fontWeight:'500'}}>{item}</span>
         ))}
       </div>
 
-      {/* Categories */}
       <section style={{padding:'48px 40px',textAlign:'center'}}>
         <p style={{color:'#0ea5e9',fontSize:'13px',fontWeight:'700',marginBottom:'8px'}}>קנה לפי קטגוריה</p>
         <h2 style={{fontSize:'32px',fontWeight:'900',marginBottom:'32px',color:'#0f172a'}}>מה אתה מחפש היום?</h2>
         <div style={{display:'grid',gridTemplateColumns:'repeat(8,1fr)',gap:'12px',maxWidth:'960px',margin:'0 auto'}}>
           {categories.map(cat=>(
-            <div key={cat.name} style={{backgroundColor:'white',borderRadius:'16px',padding:'20px 8px',textAlign:'center',cursor:'pointer',border:'2px solid #eee',transition:'all 0.2s'}}
+            <div key={cat.name} style={{backgroundColor:'white',borderRadius:'16px',padding:'20px 8px',textAlign:'center',cursor:'pointer',border:'2px solid #eee'}}
               onMouseEnter={e=>(e.currentTarget.style.borderColor='#0ea5e9')}
               onMouseLeave={e=>(e.currentTarget.style.borderColor='#eee')}>
               <div style={{fontSize:'32px',marginBottom:'8px'}}>{cat.emoji}</div>
@@ -109,16 +112,13 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Products */}
       <section style={{padding:'0 40px 64px'}}>
         <div style={{textAlign:'center',marginBottom:'32px'}}>
           <p style={{color:'#0ea5e9',fontSize:'13px',fontWeight:'700',marginBottom:'8px'}}>הכי נמכרים</p>
           <h2 style={{fontSize:'32px',fontWeight:'900',color:'#0f172a',marginBottom:'24px'}}>מוצרים מומלצים</h2>
           <div style={{display:'flex',gap:'8px',justifyContent:'center'}}>
             {filters.map(f=>(
-              <button key={f} onClick={()=>setActiveFilter(f)} style={{padding:'8px 20px',borderRadius:'20px',border:'2px solid',borderColor:activeFilter===f?'#0ea5e9':'#ddd',backgroundColor:activeFilter===f?'#0ea5e9':'white',color:activeFilter===f?'white':'#444',fontWeight:'700',fontSize:'13px',cursor:'pointer'}}>
-                {f}
-              </button>
+              <button key={f} onClick={()=>setActiveFilter(f)} style={{padding:'8px 20px',borderRadius:'20px',border:'2px solid',borderColor:activeFilter===f?'#0ea5e9':'#ddd',backgroundColor:activeFilter===f?'#0ea5e9':'white',color:activeFilter===f?'white':'#444',fontWeight:'700',fontSize:'13px',cursor:'pointer'}}>{f}</button>
             ))}
           </div>
         </div>
@@ -138,14 +138,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* AI Section */}
       <section style={{background:'linear-gradient(135deg,#0ea5e9,#0284c7)',padding:'64px 40px',textAlign:'center'}}>
         <h2 style={{fontSize:'36px',fontWeight:'900',color:'white',marginBottom:'12px'}}>לא יודע מה לבחור?</h2>
         <p style={{color:'rgba(255,255,255,0.85)',fontSize:'16px',marginBottom:'28px'}}>ספר לנו על הבית שלך ואנחנו נמצא את הרובוט המושלם — בחינם, בשניות.</p>
         <button style={{backgroundColor:'white',color:'#0ea5e9',border:'none',padding:'14px 32px',borderRadius:'12px',fontSize:'16px',fontWeight:'700',cursor:'pointer'}}>→ פתח שיחה עם AI</button>
       </section>
 
-      {/* Footer */}
       <footer style={{backgroundColor:'#0f172a',padding:'40px',color:'#64748b',fontSize:'13px'}}>
         <div style={{display:'flex',justifyContent:'space-between',maxWidth:'1100px',margin:'0 auto',flexWrap:'wrap',gap:'24px'}}>
           <div>
@@ -159,9 +157,7 @@ export default function Home() {
             </div>
           ))}
         </div>
-        <div style={{textAlign:'center',marginTop:'32px',borderTop:'1px solid #1e293b',paddingTop:'24px'}}>
-          © FILOS 2026 — נבנה עם ❤️ בישראל
-        </div>
+        <div style={{textAlign:'center',marginTop:'32px',borderTop:'1px solid #1e293b',paddingTop:'24px'}}>© FILOS 2026 — נבנה עם ❤️ בישראל</div>
       </footer>
     </div>
   );
