@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { createClient } from './lib/supabase';
+import ChatWidget from './components/ChatWidget';
 
 const categories = [
   {name:'שואבי רובוט',emoji:'🤖'},{name:'בית חכם',emoji:'📱'},
@@ -191,7 +192,7 @@ export default function Home() {
         <p style={{fontSize:'18px',color:'#666',maxWidth:'500px',margin:'0 auto 32px'}}>שואבי רובוט, בית חכם, גאדג'טים וסוללות — במחיר שלא תמצא בשום מקום אחר.</p>
         <div style={{display:'flex',gap:'16px',justifyContent:'center',flexWrap:'wrap'}}>
           <button style={{backgroundColor:'#0f172a',color:'white',border:'none',padding:'14px 32px',borderRadius:'12px',fontSize:'16px',fontWeight:'700',cursor:'pointer'}}>גלה את המוצרים ↓</button>
-          <button style={{backgroundColor:'white',color:'#0f172a',border:'2px solid #0f172a',padding:'14px 32px',borderRadius:'12px',fontSize:'16px',fontWeight:'700',cursor:'pointer'}}>דבר עם FILOS AI</button>
+          <button onClick={()=>document.getElementById('filos-chat-btn')?.click()} style={{backgroundColor:'white',color:'#0f172a',border:'2px solid #0f172a',padding:'14px 32px',borderRadius:'12px',fontSize:'16px',fontWeight:'700',cursor:'pointer'}}>דבר עם FILOS AI 🤖</button>
         </div>
         <div style={{display:'flex',gap:'48px',justifyContent:'center',marginTop:'48px'}}>
           {[['15K+','לקוחות מרוצים'],['★4.9','דירוג ממוצע'],['48h','משלוח מהיר'],['₪0','משלוח חינם מ-299']].map(([val,label])=>(
@@ -259,7 +260,7 @@ export default function Home() {
       <section style={{background:'linear-gradient(135deg,#0ea5e9,#0284c7)',padding:'64px 40px',textAlign:'center'}}>
         <h2 style={{fontSize:'36px',fontWeight:'900',color:'white',marginBottom:'12px'}}>לא יודע מה לבחור?</h2>
         <p style={{color:'rgba(255,255,255,0.85)',fontSize:'16px',marginBottom:'28px'}}>ספר לנו על הבית שלך ואנחנו נמצא את הרובוט המושלם — בחינם, בשניות.</p>
-        <button style={{backgroundColor:'white',color:'#0ea5e9',border:'none',padding:'14px 32px',borderRadius:'12px',fontSize:'16px',fontWeight:'700',cursor:'pointer'}}>→ פתח שיחה עם AI</button>
+        <button onClick={()=>document.getElementById('filos-chat-btn')?.click()} style={{backgroundColor:'white',color:'#0ea5e9',border:'none',padding:'14px 32px',borderRadius:'12px',fontSize:'16px',fontWeight:'700',cursor:'pointer'}}>→ פתח שיחה עם AI 🤖</button>
       </section>
 
       <footer style={{backgroundColor:'#0f172a',padding:'40px',color:'#64748b',fontSize:'13px'}}>
@@ -277,6 +278,9 @@ export default function Home() {
         </div>
         <div style={{textAlign:'center',marginTop:'32px',borderTop:'1px solid #1e293b',paddingTop:'24px'}}>© FILOS 2026 — נבנה עם ❤️ בישראל</div>
       </footer>
+
+      {/* ChatWidget - מופיע בכל הדף */}
+      <ChatWidget products={products} onAddToCart={addToCart} />
     </div>
   );
 }
