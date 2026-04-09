@@ -14,12 +14,26 @@ export default function Home() {
   const [cart, setCart] = useState<any[]>([]);
   const [activeFilter, setActiveFilter] = useState('הכל');
   const [cartOpen, setCartOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const supabase = createClient();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+    supabase.auth.getUser().then(async ({ data }) => {
+      setUser(data.user);
+      if (data.user) {
+        const { data: notifs } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', data.user.id)
+          .eq('read', false)
+          .order('created_at', { ascending: false })
+          .limit(10);
+        setNotifications(notifs || []);
+      }
+    });
     supabase.from('products').select('*').eq('in_stock', true).then(({ data }) => {
       if (data) setProducts(data);
       setLoading(false);
@@ -50,10 +64,21 @@ export default function Home() {
     window.location.href = '/checkout';
   };
 
+  const markAllRead = async () => {
+    if (!user) return;
+    await supabase.from('notifications').update({ read: true }).eq('user_id', user.id);
+    setNotifications([]);
+  };
+
   const cartCount = cart.reduce((sum, i) => sum + i.qty, 0);
   const cartTotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const unreadCount = notifications.length;
   const filters = ['הכל', 'שואבי רובוט', 'אביזרים'];
   const filtered = activeFilter === 'הכל' ? products : products.filter(p => p.category === activeFilter);
+
+  const notifIcon: Record<string,string> = {
+    order:'📦', warning:'⚠️', danger:'🔴', info:'ℹ️', success:'✅'
+  };
 
   return (
     <div style={{fontFamily:'system-ui,sans-serif',direction:'rtl',backgroundColor:'#f5f5f0',minHeight:'100vh'}}>
@@ -65,11 +90,51 @@ export default function Home() {
             <a key={item} href="#" style={{fontSize:'14px',color:'#444',textDecoration:'none',fontWeight:'500'}}>{item}</a>
           ))}
         </nav>
-        <div style={{display:'flex',gap:'12px',alignItems:'center'}}>
-          <div onClick={()=>setCartOpen(!cartOpen)} style={{cursor:'pointer',position:'relative',fontSize:'20px'}}>
+        <div style={{display:'flex',gap:'12px',alignItems:'center',direction:'ltr'}}>
+
+          <div onClick={()=>{setCartOpen(!cartOpen);setNotifOpen(false);}} style={{cursor:'pointer',position:'relative',fontSize:'20px'}}>
             🛒
             {cartCount>0&&<span style={{position:'absolute',top:'-8px',right:'-8px',backgroundColor:'#f97316',color:'white',borderRadius:'50%',width:'18px',height:'18px',fontSize:'11px',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:'700'}}>{cartCount}</span>}
           </div>
+
+          {user&&(
+            <div style={{position:'relative'}}>
+              <button onClick={()=>{setNotifOpen(!notifOpen);setCartOpen(false);}} style={{position:'relative',backgroundColor:'#f1f5f9',border:'none',width:'36px',height:'36px',borderRadius:'50%',cursor:'pointer',fontSize:'16px',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                🔔
+                {unreadCount>0&&<span style={{position:'absolute',top:'-2px',right:'-2px',backgroundColor:'#ef4444',color:'white',borderRadius:'50%',width:'16px',height:'16px',fontSize:'10px',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:'700'}}>{unreadCount}</span>}
+              </button>
+
+              {notifOpen&&(
+                <div style={{position:'fixed',top:'64px',left:'8px',backgroundColor:'white',borderRadius:'16px',boxShadow:'0 8px 32px rgba(0,0,0,0.15)',zIndex:200,width:'300px',maxHeight:'380px',overflow:'hidden',display:'flex',flexDirection:'column',direction:'rtl'}}>
+                  <div style={{padding:'14px 16px',borderBottom:'1px solid #f0f0f0',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <span style={{fontWeight:'800',fontSize:'14px'}}>🔔 התראות</span>
+                    <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
+                      {unreadCount>0&&<button onClick={markAllRead} style={{fontSize:'11px',color:'#0ea5e9',background:'none',border:'none',cursor:'pointer',fontWeight:'600'}}>נקרא הכל</button>}
+                      <a href="/profile" style={{fontSize:'11px',color:'#888',textDecoration:'none'}}>הכל ←</a>
+                    </div>
+                  </div>
+                  <div style={{overflowY:'auto',flex:1}}>
+                    {notifications.length===0 ? (
+                      <div style={{padding:'24px',textAlign:'center',color:'#888',fontSize:'13px'}}>אין התראות חדשות 🎉</div>
+                    ) : notifications.map(n=>(
+                      <div key={n.id} style={{padding:'12px 16px',borderBottom:'1px solid #f9f9f9',backgroundColor:'#eff6ff',cursor:'pointer'}}
+                        onClick={()=>{ if(n.action_url) window.location.href=n.action_url; }}>
+                        <div style={{display:'flex',gap:'8px',alignItems:'flex-start'}}>
+                          <span style={{fontSize:'18px'}}>{notifIcon[n.type]||'ℹ️'}</span>
+                          <div style={{flex:1}}>
+                            <div style={{fontWeight:'700',fontSize:'12px',color:'#0f172a'}}>{n.title}</div>
+                            <div style={{fontSize:'11px',color:'#666',marginTop:'2px'}}>{n.body}</div>
+                          </div>
+                          <div style={{width:'8px',height:'8px',borderRadius:'50%',backgroundColor:'#0ea5e9',flexShrink:0,marginTop:'4px'}}/>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {user ? (
             <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
               <a href="/profile" style={{fontSize:'13px',color:'#444',textDecoration:'none',fontWeight:'600',backgroundColor:'#f1f5f9',padding:'8px 12px',borderRadius:'8px'}}>👤 {user.email?.split('@')[0]}</a>
@@ -82,12 +147,11 @@ export default function Home() {
       </header>
 
       {cartOpen&&(
-        <div style={{position:'fixed',top:'64px',left:'40px',backgroundColor:'white',borderRadius:'16px',padding:'20px',boxShadow:'0 8px 32px rgba(0,0,0,0.15)',zIndex:200,minWidth:'300px',maxWidth:'340px'}}>
+        <div style={{position:'fixed',top:'64px',left:'40px',backgroundColor:'white',borderRadius:'16px',padding:'20px',boxShadow:'0 8px 32px rgba(0,0,0,0.15)',zIndex:200,minWidth:'300px',maxWidth:'340px',direction:'rtl'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'12px'}}>
             <h3 style={{margin:0,fontSize:'16px',fontWeight:'700'}}>🛒 העגלה שלי ({cartCount})</h3>
             <button onClick={()=>setCartOpen(false)} style={{background:'none',border:'none',fontSize:'18px',cursor:'pointer',color:'#888'}}>✕</button>
           </div>
-
           {cartCount===0 ? (
             <p style={{color:'#888',fontSize:'14px',textAlign:'center',padding:'16px 0'}}>העגלה ריקה</p>
           ) : (
@@ -109,7 +173,6 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-
               <div style={{display:'flex',justifyContent:'space-between',padding:'12px 0 8px',fontWeight:'700',fontSize:'15px',borderTop:'2px solid #f0f0f0',marginTop:'4px'}}>
                 <span>סה"כ</span>
                 <span style={{color:'#0ea5e9'}}>₪{cartTotal.toLocaleString()}</span>
