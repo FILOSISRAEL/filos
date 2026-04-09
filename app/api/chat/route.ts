@@ -4,39 +4,31 @@ export async function POST(req: NextRequest) {
   try {
     const { messages, system } = await req.json();
 
-    const contents = messages.map((m: any) => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }]
-    }));
-
-    const body = {
-      system_instruction: {
-        parts: [{ text: system }]
-      },
-      contents,
-      generationConfig: {
-        maxOutputTokens: 500,
-        temperature: 0.7,
-      }
-    };
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
-
-    const response = await fetch(url, {
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        max_tokens: 500,
+        temperature: 0.5,
+        messages: [
+          { role: 'system', content: system },
+          ...messages,
+        ],
+      }),
     });
 
     if (!response.ok) {
       const err = await response.text();
-      console.error('Gemini error:', err);
-      return NextResponse.json({ content: [{ text: 'שגיאה זמנית, נסה שוב בעוד רגע.' }] });
+      console.error('Groq error:', err);
+      return NextResponse.json({ content: [{ text: 'שגיאה זמנית, נסה שוב.' }] });
     }
 
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'לא קיבלתי תשובה.';
-
+    const text = data.choices?.[0]?.message?.content || 'לא קיבלתי תשובה.';
     return NextResponse.json({ content: [{ text }] });
   } catch (e: any) {
     console.error('Route error:', e);
